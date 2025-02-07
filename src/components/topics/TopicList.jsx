@@ -4,14 +4,12 @@ import { IconRefresh } from '@tabler/icons-react';
 import axios from 'axios';
 import TopicCard from './TopicCard';
 import Button from '@/components/common/Button';
-import { useAuth } from '../../context/AuthContext';
 
 /**
  * TopicList component that displays a list of topics with refresh functionality
  * Supports trending topics view and regular topics list
  */
 const TopicList = ({ isTrending = false }) => {
-  const { token } = useAuth();
   const [topics, setTopics] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,14 +17,13 @@ const TopicList = ({ isTrending = false }) => {
 
   // Fetch topics from API
   const fetchTopics = async () => {
-    
     try {
       setIsLoading(true);
       setError(null);
+      const token = localStorage.getItem('token');
       
-      // const endpoint = isTrending ? '/api/topics/trending' : '/api/topics';
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/topics/trending`,{
-        headers: { Authorization: `Bearer ${token}` }
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/topics/trending`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       
       setTopics(response.data.data);
@@ -41,8 +38,6 @@ const TopicList = ({ isTrending = false }) => {
   useEffect(() => {
     fetchTopics();
   }, [isTrending]);
-
-
 
   if (error) {
     return (
@@ -108,10 +103,7 @@ const TopicList = ({ isTrending = false }) => {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {topics.map((topic) => (
-            <TopicCard
-              key={topic._id}
-              topic={topic}
-            />
+            <TopicCard key={topic._id} topic={topic} />
           ))}
         </div>
       )}

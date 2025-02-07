@@ -8,14 +8,6 @@ import CommentCard from '@/components/comments/CommentCard';
 import HashtagList from '@/components/common/HashtagList';
 import SearchBar from '@/components/search/SearchBar';
 
-/**
- * SearchPage component for searching and displaying topics and comments
- * Features:
- * - Search by hashtags
- * - Display trending hashtags
- * - Filter results by type (topics/comments)
- * - Responsive grid layout
- */
 const SearchPage = () => {
   const [searchParams] = useSearchParams();
   const { showToast } = useToast();
@@ -115,7 +107,6 @@ const SearchPage = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Search Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
           Search
@@ -125,7 +116,6 @@ const SearchPage = () => {
         </div>
       </div>
 
-      {/* Trending Hashtags */}
       {trendingHashtags.length > 0 && (
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
@@ -142,50 +132,18 @@ const SearchPage = () => {
         </div>
       )}
 
-      {/* Search Results */}
       {query ? (
         <div className="space-y-6">
-          {/* Result Tabs */}
           <div className="flex items-center space-x-4 border-b border-gray-200 dark:border-gray-700">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`pb-2 px-1 text-sm font-medium ${
-                activeTab === 'all'
-                  ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              All ({results.topics.length + results.comments.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('topics')}
-              className={`pb-2 px-1 text-sm font-medium ${
-                activeTab === 'topics'
-                  ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              Topics ({results.topics.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('comments')}
-              className={`pb-2 px-1 text-sm font-medium ${
-                activeTab === 'comments'
-                  ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              Comments ({results.comments.length})
-            </button>
+            <button onClick={() => setActiveTab('all')} className={`pb-2 px-1 text-sm font-medium ${activeTab === 'all' ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}>All ({results.topics.length + results.comments.length})</button>
+            <button onClick={() => setActiveTab('topics')} className={`pb-2 px-1 text-sm font-medium ${activeTab === 'topics' ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}>Topics ({results.topics.length})</button>
+            <button onClick={() => setActiveTab('comments')} className={`pb-2 px-1 text-sm font-medium ${activeTab === 'comments' ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}>Comments ({results.comments.length})</button>
           </div>
 
           {isLoading ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {[...Array(6)].map((_, index) => (
-                <div
-                  key={index}
-                  className="bg-white dark:bg-gray-800 rounded-lg p-6 animate-pulse"
-                >
+                <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-6 animate-pulse">
                   <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4" />
                   <div className="space-y-2">
                     <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded" />
@@ -199,43 +157,17 @@ const SearchPage = () => {
               <IconSearch className="w-16 h-16 mx-auto text-gray-400" />
               <p className="mt-4 text-gray-500 dark:text-gray-400">{error}</p>
             </div>
-          ) : filteredResults.length === 0 ? (
-            <div className="text-center py-8">
-              <IconSearch className="w-16 h-16 mx-auto text-gray-400" />
-              <p className="mt-4 text-gray-500 dark:text-gray-400">
-                No results found for "{query}"
-              </p>
-            </div>
           ) : (
             <div className="space-y-6">
-              {filteredResults.map(result => (
-                'title' in result ? (
-                  <TopicCard
-                    key={result._id}
-                    topic={result}
-                    onDelete={handleTopicDelete}
-                    onUpdate={handleTopicUpdate}
-                  />
-                ) : (
-                  <CommentCard
-                    key={result._id}
-                    comment={result}
-                    onDelete={handleCommentDelete}
-                    onUpdate={handleCommentUpdate}
-                  />
-                )
+              {filteredResults.map(result => 'title' in result ? (
+                <TopicCard key={result._id} topic={result} onDelete={handleTopicDelete} onUpdate={handleTopicUpdate} />
+              ) : (
+                <CommentCard key={result._id} comment={result} onDelete={handleCommentDelete} onUpdate={handleCommentUpdate} />
               ))}
             </div>
           )}
         </div>
-      ) : (
-        <div className="text-center py-16">
-          <IconSearch className="w-16 h-16 mx-auto text-gray-400" />
-          <p className="mt-4 text-gray-500 dark:text-gray-400">
-            Enter a hashtag to search for topics and comments
-          </p>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 };
