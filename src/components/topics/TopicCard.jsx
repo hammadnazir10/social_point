@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { IconThumbUp, IconThumbDown, IconMessageCircle2, IconTrash, IconEdit } from '@tabler/icons-react';
-import { useAuth } from '@/hooks/useAuth';
+import { IconThumbUp, IconThumbDown, IconMessageCircle2 } from '@tabler/icons-react';
 import { useToast } from '@/hooks/useToast';
 import axios from 'axios';
 import Avatar from '@/components/common/Avatar';
+import { getAnonymousUserId } from '@/hooks/anonymousUser';
+
 
 /**
  * TopicCard component for displaying individual topic details
  * with interactions like voting and comment count
  */
 const TopicCard = ({ topic }) => {
-  const { user } = useAuth();
   const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+
+  const anonymousUserId = getAnonymousUserId();
 
   const {
     _id,
@@ -32,17 +34,12 @@ const TopicCard = ({ topic }) => {
     day: 'numeric'
   });
 
- 
-
   // Handle trending score update
   const handleTrendingScore = async (score) => {
     try {
-      const token = localStorage.getItem('token');
-      
       await axios.put(
         `${import.meta.env.VITE_API_URL}/api/topics/${_id}/trending`,
-        { score },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { score, userId: anonymousUserId }
       );
 
       onUpdate({ ...topic, trendingScore: score });
@@ -57,19 +54,18 @@ const TopicCard = ({ topic }) => {
         <div className="flex items-center">
           <Avatar
             src={userId?.profilePicture}
-            alt={userId?.username}
+            alt={userId?.username || 'Anonymous'}
             size="md"
           />
           <div className="ml-3">
             <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              {userId?.username}
+              {userId?.username || 'Anonymous'}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               {formattedDate}
             </p>
           </div>
         </div>
-
       </div>
 
       <Link to={`/topic/${_id}`} className="block hover:no-underline">
