@@ -1,21 +1,16 @@
 import { NavLink } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
 import { IconHome, IconTrendingUp, IconSearch, IconUser, IconPlus } from '@tabler/icons-react';
 
 /**
  * Navigation component with responsive design and active state styling
  */
 const Navigation = () => {
-  const { isAuthenticated } = useAuth();
-
   const navItems = [
     { path: '/', label: 'Home', icon: <IconHome className="w-5 h-5" /> },
     { path: '/trending', label: 'Trending', icon: <IconTrendingUp className="w-5 h-5" /> },
     { path: '/search', label: 'Search', icon: <IconSearch className="w-5 h-5" /> },
-    ...isAuthenticated ? [
-      { path: '/topic/create', label: 'New Topic', icon: <IconPlus className="w-5 h-5" /> },
-      { path: '/profile', label: 'Profile', icon: <IconUser className="w-5 h-5" /> }
-    ] : []
+    { path: '/topic/create', label: 'New Topic', icon: <IconPlus className="w-5 h-5" /> },
+    // { path: '/profile', label: 'Profile', icon: <IconUser className="w-5 h-5" /> }
   ];
 
   const navLinkClasses = ({ isActive }) => [

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IconArrowLeft } from '@tabler/icons-react';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
+import { getAnonymousUserId } from '@/hooks/anonymousUser';
 import axios from 'axios';
 import Button from '@/components/common/Button';
 import Input from '@/components/common/Input';
@@ -26,8 +26,8 @@ const CreateTopicPage = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { showToast } = useToast();
+  const userId = getAnonymousUserId();
 
   const validateForm = () => {
     const newErrors = {};
@@ -55,12 +55,10 @@ const CreateTopicPage = () => {
 
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token');
-      
+
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/topics`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { ...formData, userId }
       );
 
       showToast('Topic created successfully', 'success');

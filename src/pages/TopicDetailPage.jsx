@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { IconEdit, IconTrash, IconArrowLeft, IconShare } from '@tabler/icons-react';
 import axios from 'axios';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
+import { getAnonymousUserId } from '@/hooks/anonymousUser';
 import Button from '@/components/common/Button';
 import CommentList from '@/components/comments/CommentList';
 import HashtagList from '@/components/common/HashtagList';
@@ -11,12 +11,13 @@ import Avatar from '@/components/common/Avatar';
 
 const TopicDetailPage = () => {
   const { id } = useParams();
+  console.log('idd ', id);
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { showToast } = useToast();
   const [topic, setTopic] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const userId = getAnonymousUserId();
 
   useEffect(() => {
     fetchTopic();
@@ -40,10 +41,7 @@ const TopicDetailPage = () => {
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this topic?')) return;
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/topics/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/topics/${id}`);
       showToast('Topic deleted successfully', 'success');
       navigate('/');
     } catch (error) {
@@ -80,7 +78,7 @@ const TopicDetailPage = () => {
 
   if (!topic) return null;
 
-  const isOwner = user?.id === topic.userId;
+  const isOwner = userId === topic.userId;
   const formattedDate = new Date(topic.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',

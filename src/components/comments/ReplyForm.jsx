@@ -1,21 +1,64 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAudioRecorder } from 'react-audio-voice-recorder';
+import { v4 as uuidv4 } from 'uuid';
+import axios from 'axios';
 import Button from '@/components/common/Button';
+import { useToast } from '@/hooks/useToast';
+import { IconMicrophone } from '@tabler/icons-react';
 
-/**
- * ReplyForm component for submitting replies to comments
- * @param {Object} props
- * @param {Function} props.onSubmit - Submit handler
- * @param {Function} props.onCancel - Cancel handler
- */
-const ReplyForm = ({ onSubmit, onCancel }) => {
+const ReplyForm = ({ onSubmit, onCancel, parentCommentId, topicId }) => {
   const [content, setContent] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [tempAudioUrl, setTempAudioUrl] = useState(null);
+  const { showToast } = useToast();
+  const {
+    startRecording,
+    stopRecording,
+    recordingBlob,
+    isRecording,
+  } = useAudioRecorder();
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    if (!recordingBlob) return;
+
+    const uploadAudio = async () => {
+      try {
+        setIsLoading(true);
+        const uniqueFileName = `audio_${uuidv4()}_${Date.now()}.mp3`;
+        const formData = new FormData();
+        formData.append('fileUrl', recordingBlob, uniqueFileName);
+
+        const token = localStorage.getItem('token');
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URL}/api/users/createUrlForpicture`,
+          formData,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        setTempAudioUrl(response.data.response);
+        showToast('Recording saved temporarily', 'success');
+      } catch (error) {
+        showToast(error.response?.data?.message || 'Error uploading audio', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    uploadAudio();
+  }, [recordingBlob]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (content.trim()) {
-      onSubmit(content);
-      setContent('');
+    if (!tempAudioUrl && !content.trim()) {
+      showToast('Please record a voice reply or enter text', 'error');
+      return;
     }
+
+    onSubmit({ content, audioUrl: tempAudioUrl });
+    setContent('');
+    setTempAudioUrl(null);
   };
 
   return (
@@ -37,8 +80,17 @@ const ReplyForm = ({ onSubmit, onCancel }) => {
           Cancel
         </Button>
         <Button
+          type="button"
+          onClick={isRecording ? stopRecording : startRecording}
+          disabled={isLoading}
+          className="flex items-center space-x-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
+        >
+          <IconMicrophone className="w-5 h-5" />
+          <span>{isRecording ? 'Save Recording' : 'Start Recording'}</span>
+        </Button>
+        <Button
           type="submit"
-          disabled={!content.trim()}
+          disabled={isLoading}
         >
           Reply
         </Button>
