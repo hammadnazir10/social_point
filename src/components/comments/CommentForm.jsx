@@ -1,22 +1,20 @@
-
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
 import axios from 'axios';
 import { IconHash, IconSend, IconMicrophone } from '@tabler/icons-react';
 import Button from '@/components/common/Button';
 import { useAudioRecorder } from 'react-audio-voice-recorder';
 import { v4 as uuidv4 } from 'uuid';
+import { getAnonymousUserId } from '@/hooks/anonymousUser';
 
-/**
- * CommentForm component for creating new voice comments with hashtag support
- */
 const CommentForm = ({ topicId, onCommentSubmit }) => {
   const [hashtags, setHashtags] = useState([]);
   const [currentHashtag, setCurrentHashtag] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
+  const [tempAudioUrl, setTempAudioUrl] = useState(null);
   const { showToast } = useToast();
+  const userId = getAnonymousUserId();
+  console.log(userId);
   const {
     startRecording,
     stopRecording,
@@ -32,24 +30,21 @@ const CommentForm = ({ topicId, onCommentSubmit }) => {
         setIsLoading(true);
         const uniqueFileName = `audio_${uuidv4()}_${Date.now()}.mp3`;
         const formData = new FormData();
-        formData.append('fileUrl', recordingBlob,uniqueFileName); // Use the correct field name
+        formData.append('fileUrl', recordingBlob, uniqueFileName);
 
         const token = localStorage.getItem('token');
         const response = await axios.post(
           `${import.meta.env.VITE_API_URL}/api/users/createUrlForpicture`,
           formData,
           {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
           }
         );
 
-        const audioUrl = response.data.response;
-        await handleSubmit(audioUrl);
+        setTempAudioUrl(response.data.response);
+        showToast('Recording saved temporarily', 'success');
       } catch (error) {
-        showToast(
-          error.response?.data?.message || 'Error uploading audio',
-          'error'
-        );
+        showToast(error.response?.data?.message || 'Error uploading audio', 'error');
       } finally {
         setIsLoading(false);
       }
@@ -58,26 +53,12 @@ const CommentForm = ({ topicId, onCommentSubmit }) => {
     uploadAudio();
   }, [recordingBlob]);
 
-  const handleHashtagKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ' || e.key === ',') {
-      e.preventDefault();
-      if (currentHashtag.trim() && !hashtags.includes(currentHashtag.trim())) {
-        setHashtags([...hashtags, currentHashtag.trim()]);
-      }
-      setCurrentHashtag('');
-    } else if (e.key === 'Backspace' && !currentHashtag) {
-      e.preventDefault();
-      const newHashtags = [...hashtags];
-      newHashtags.pop();
-      setHashtags(newHashtags);
+  const handleSubmit = async () => {
+    if (!tempAudioUrl) {
+      showToast('Please record and save audio first', 'error');
+      return;
     }
-  };
 
-  const removeHashtag = (tagToRemove) => {
-    setHashtags(hashtags.filter(tag => tag !== tagToRemove));
-  };
-
-  const handleSubmit = async (audioUrl) => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('token');
@@ -85,22 +66,21 @@ const CommentForm = ({ topicId, onCommentSubmit }) => {
         `${import.meta.env.VITE_API_URL}/api/comments`,
         {
           topicId,
-          audioUrl,
+          audioUrl: tempAudioUrl,
           hashtags,
+          userId: userId,
         },
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
       onCommentSubmit(response.data.data);
       setHashtags([]);
+      setTempAudioUrl(null);
       showToast('Voice comment added successfully', 'success');
     } catch (error) {
-      showToast(
-        error.response?.data?.message || 'Error posting voice comment',
-        'error'
-      );
+      showToast(error.response?.data?.message || 'Error posting voice comment', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -119,10 +99,11 @@ const CommentForm = ({ topicId, onCommentSubmit }) => {
             <IconMicrophone className="w-5 h-5" />
             <span>{isRecording ? 'Save Recording' : 'Start Recording'}</span>
           </Button>
-          {recordingBlob && (
+
+          {tempAudioUrl && (
             <Button
               type="button"
-              onClick={() => handleSubmit(recordingBlob)}
+              onClick={handleSubmit}
               disabled={isLoading}
               className="flex items-center space-x-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
             >
@@ -131,17 +112,32 @@ const CommentForm = ({ topicId, onCommentSubmit }) => {
             </Button>
           )}
         </div>
+
         <div className="flex items-center space-x-2 mt-2">
           <IconHash className="w-5 h-5 text-gray-400" />
           <input
             type="text"
             value={currentHashtag}
             onChange={(e) => setCurrentHashtag(e.target.value)}
-            onKeyDown={handleHashtagKeyDown}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ' || e.key === ',') {
+                e.preventDefault();
+                if (currentHashtag.trim() && !hashtags.includes(currentHashtag.trim())) {
+                  setHashtags([...hashtags, currentHashtag.trim()]);
+                }
+                setCurrentHashtag('');
+              } else if (e.key === 'Backspace' && !currentHashtag) {
+                e.preventDefault();
+                const newHashtags = [...hashtags];
+                newHashtags.pop();
+                setHashtags(newHashtags);
+              }
+            }}
             placeholder="Add hashtags..."
             className="flex-grow bg-transparent border-none focus:ring-0 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
           />
         </div>
+
         <div className="flex flex-wrap items-center gap-2 mt-2">
           {hashtags.map((tag) => (
             <span
@@ -151,7 +147,7 @@ const CommentForm = ({ topicId, onCommentSubmit }) => {
               #{tag}
               <button
                 type="button"
-                onClick={() => removeHashtag(tag)}
+                onClick={() => setHashtags(hashtags.filter((t) => t !== tag))}
                 className="ml-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
               >
                 ×

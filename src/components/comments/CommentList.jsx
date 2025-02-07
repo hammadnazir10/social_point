@@ -18,10 +18,8 @@ const CommentList = ({ topicId }) => {
   const fetchComments = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token');
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/comments/topic/${topicId}`,
-        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+        `${import.meta.env.VITE_API_URL}/api/comments/topic/${topicId}`
       );
 
       // Sort comments based on sortOrder
@@ -105,7 +103,7 @@ const CommentList = ({ topicId }) => {
   const toggleSortOrder = () => {
     setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
   };
-
+console.log("comments",comments)
   return (
     <div className="space-y-6">
       <CommentForm topicId={topicId} onCommentSubmit={handleCommentSubmit} />
@@ -157,7 +155,7 @@ const CommentList = ({ topicId }) => {
         <div className="space-y-4">
           {comments.map(comment => (
             <CommentCard
-              key={comment._id}
+              key={comment?._id}
               comment={comment}
               onDelete={handleCommentDelete}
               onUpdate={handleCommentUpdate}
