@@ -97,7 +97,7 @@ const TopicDetailPage = () => {
           <Button variant="ghost" onClick={handleShare} leftIcon={<IconShare className="w-5 h-5" />}>
             Share
           </Button>
-          {isOwner && (
+          {/* {isOwner && (
             <>
               <Link to={`/topic/edit/${id}`}>
                 <Button variant="outline" leftIcon={<IconEdit className="w-5 h-5" />}>
@@ -108,7 +108,7 @@ const TopicDetailPage = () => {
                 Delete
               </Button>
             </>
-          )}
+          )} */}
         </div>
       </div>
       <article className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">

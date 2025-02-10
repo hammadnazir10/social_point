@@ -1,26 +1,23 @@
-import { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/useToast';
-import axios from 'axios';
-import { IconHash, IconSend, IconMicrophone } from '@tabler/icons-react';
-import Button from '@/components/common/Button';
-import { useAudioRecorder } from 'react-audio-voice-recorder';
-import { v4 as uuidv4 } from 'uuid';
-import { getAnonymousUserId } from '@/hooks/anonymousUser';
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/useToast";
+import axios from "axios";
+import { IconHash, IconSend, IconMicrophone } from "@tabler/icons-react";
+import Button from "@/components/common/Button";
+import { useAudioRecorder } from "react-audio-voice-recorder";
+import { v4 as uuidv4 } from "uuid";
+import { getAnonymousUserId } from "@/hooks/anonymousUser";
+import useSpeechToText from 'react-hook-speech-to-text';
 
-const CommentForm = ({ topicId, onCommentSubmit }) => {
+
+const CommentForm = ({ topicId, onCommentSubmit, refreshComments }) => {
   const [hashtags, setHashtags] = useState([]);
-  const [currentHashtag, setCurrentHashtag] = useState('');
+  const [currentHashtag, setCurrentHashtag] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [tempAudioUrl, setTempAudioUrl] = useState(null);
   const { showToast } = useToast();
   const userId = getAnonymousUserId();
-  console.log(userId);
-  const {
-    startRecording,
-    stopRecording,
-    recordingBlob,
-    isRecording,
-  } = useAudioRecorder();
+  const { startRecording, stopRecording, recordingBlob, isRecording } =
+    useAudioRecorder();
 
   useEffect(() => {
     if (!recordingBlob) return;
@@ -30,9 +27,9 @@ const CommentForm = ({ topicId, onCommentSubmit }) => {
         setIsLoading(true);
         const uniqueFileName = `audio_${uuidv4()}_${Date.now()}.mp3`;
         const formData = new FormData();
-        formData.append('fileUrl', recordingBlob, uniqueFileName);
+        formData.append("fileUrl", recordingBlob, uniqueFileName);
 
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         const response = await axios.post(
           `${import.meta.env.VITE_API_URL}/api/users/createUrlForpicture`,
           formData,
@@ -42,9 +39,12 @@ const CommentForm = ({ topicId, onCommentSubmit }) => {
         );
 
         setTempAudioUrl(response.data.response);
-        showToast('Recording saved temporarily', 'success');
+        showToast("Recording saved temporarily", "success");
       } catch (error) {
-        showToast(error.response?.data?.message || 'Error uploading audio', 'error');
+        showToast(
+          error.response?.data?.message || "Error uploading audio",
+          "error"
+        );
       } finally {
         setIsLoading(false);
       }
@@ -55,13 +55,13 @@ const CommentForm = ({ topicId, onCommentSubmit }) => {
 
   const handleSubmit = async () => {
     if (!tempAudioUrl) {
-      showToast('Please record and save audio first', 'error');
+      showToast("Please record and save audio first", "error");
       return;
     }
 
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/comments`,
         {
@@ -78,9 +78,17 @@ const CommentForm = ({ topicId, onCommentSubmit }) => {
       onCommentSubmit(response.data.data);
       setHashtags([]);
       setTempAudioUrl(null);
-      showToast('Voice comment added successfully', 'success');
+      showToast("Voice comment added successfully", "success");
+
+      // Wait for 2 seconds before refreshing comments
+      setTimeout(() => {
+        refreshComments();
+      }, 2000);
     } catch (error) {
-      showToast(error.response?.data?.message || 'Error posting voice comment', 'error');
+      showToast(
+        error.response?.data?.message || "Error posting voice comment",
+        "error"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -97,7 +105,7 @@ const CommentForm = ({ topicId, onCommentSubmit }) => {
             className="flex items-center space-x-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
           >
             <IconMicrophone className="w-5 h-5" />
-            <span>{isRecording ? 'Save Recording' : 'Start Recording'}</span>
+            <span>{isRecording ? "Save Recording" : "Start Recording"}</span>
           </Button>
 
           {tempAudioUrl && (
@@ -120,13 +128,16 @@ const CommentForm = ({ topicId, onCommentSubmit }) => {
             value={currentHashtag}
             onChange={(e) => setCurrentHashtag(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ' || e.key === ',') {
+              if (e.key === "Enter" || e.key === " " || e.key === ",") {
                 e.preventDefault();
-                if (currentHashtag.trim() && !hashtags.includes(currentHashtag.trim())) {
+                if (
+                  currentHashtag.trim() &&
+                  !hashtags.includes(currentHashtag.trim())
+                ) {
                   setHashtags([...hashtags, currentHashtag.trim()]);
                 }
-                setCurrentHashtag('');
-              } else if (e.key === 'Backspace' && !currentHashtag) {
+                setCurrentHashtag("");
+              } else if (e.key === "Backspace" && !currentHashtag) {
                 e.preventDefault();
                 const newHashtags = [...hashtags];
                 newHashtags.pop();

@@ -5,14 +5,10 @@ import { IconSortAscending, IconSortDescending } from '@tabler/icons-react';
 import CommentCard from './CommentCard';
 import CommentForm from './CommentForm';
 
-/**
- * CommentList component for displaying and managing comments
- * Includes sorting, pagination, and comment management functionality
- */
 const CommentList = ({ topicId }) => {
   const [comments, setComments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
+  const [sortOrder, setSortOrder] = useState('desc');
   const { showToast } = useToast();
 
   const fetchComments = async () => {
@@ -22,8 +18,16 @@ const CommentList = ({ topicId }) => {
         `${import.meta.env.VITE_API_URL}/api/comments/topic/${topicId}`
       );
 
-      // Sort comments based on sortOrder
-      const sortedComments = response.data.data.sort((a, b) => {
+      const commentsWithReplies = await Promise.all(
+        response.data.data.map(async (comment) => {
+          const repliesResponse = await axios.get(
+            `${import.meta.env.VITE_API_URL}/api/comments/${comment._id}/replies`
+          );
+          return { ...comment, replies: repliesResponse.data.data };
+        })
+      );
+
+      const sortedComments = commentsWithReplies.sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();
         return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
@@ -45,65 +49,39 @@ const CommentList = ({ topicId }) => {
   }, [topicId, sortOrder]);
 
   const handleCommentSubmit = (newComment) => {
-    setComments(prevComments => [
-      sortOrder === 'desc' ? newComment : [...prevComments,
-      ...sortOrder === 'desc' ? prevComments : newComment]
+    setComments((prevComments) => [
+      sortOrder === 'desc' ? newComment : [...prevComments, newComment],
     ]);
   };
 
   const handleCommentDelete = (commentId) => {
-    setComments(prevComments =>
-      prevComments.filter(comment => comment._id !== commentId)
+    setComments((prevComments) =>
+      prevComments.filter((comment) => comment._id !== commentId)
     );
   };
 
   const handleCommentUpdate = (updatedComment) => {
-    setComments(prevComments =>
-      prevComments.map(comment =>
+    setComments((prevComments) =>
+      prevComments.map((comment) =>
         comment._id === updatedComment._id ? updatedComment : comment
       )
     );
   };
 
-  const handleReply = async (parentCommentId, content) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/comments`,
-        {
-          topicId,
-          content,
-          parentCommentId
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const newReply = response.data.data;
-      setComments(prevComments =>
-        prevComments.map(comment => {
-          if (comment._id === parentCommentId) {
-            return {
-              ...comment,
-              replies: [...(comment.replies || []), newReply]
-            };
-          }
-          return comment;
-        })
-      );
-
-      showToast('Reply added successfully', 'success');
-    } catch (error) {
-      showToast(
-        error.response?.data?.message || 'Error posting reply',
-        'error'
-      );
-    }
+  const handleReply = (parentCommentId, replyContent) => {
+    setComments((prevComments) =>
+      prevComments.map((comment) =>
+        comment._id === parentCommentId
+          ? { ...comment, replies: [...(comment.replies || []), replyContent] }
+          : comment
+      )
+    );
   };
 
   const toggleSortOrder = () => {
-    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   };
-console.log("comments",comments)
+
   return (
     <div className="space-y-6">
       <CommentForm topicId={topicId} onCommentSubmit={handleCommentSubmit} />
@@ -152,11 +130,12 @@ console.log("comments",comments)
           No comments yet. Be the first to share your thoughts!
         </div>
       ) : (
-        <div className="space-y-4">
-          {comments.map(comment => (
+        <div className="space-y-4 border p-[15px] rounded-lg">
+          {comments.map((comment) => (
             <CommentCard
-              key={comment?._id}
+              key={comment._id}
               comment={comment}
+              topicId={topicId}
               onDelete={handleCommentDelete}
               onUpdate={handleCommentUpdate}
               onReply={handleReply}

@@ -1,11 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { IconThumbUp, IconThumbDown, IconMessageCircle2 } from '@tabler/icons-react';
 import { useToast } from '@/hooks/useToast';
 import axios from 'axios';
 import Avatar from '@/components/common/Avatar';
 import { getAnonymousUserId } from '@/hooks/anonymousUser';
-
 
 /**
  * TopicCard component for displaying individual topic details
@@ -14,6 +13,9 @@ import { getAnonymousUserId } from '@/hooks/anonymousUser';
 const TopicCard = ({ topic }) => {
   const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [hasLiked, setHasLiked] = useState(false); // Track if user has liked
+  const [hasDisliked, setHasDisliked] = useState(false); // Track if user has disliked
+  const [trendingScore, setTrendingScore] = useState(topic.trendingScore); // Add trendingScore state
 
   const anonymousUserId = getAnonymousUserId();
 
@@ -23,7 +25,6 @@ const TopicCard = ({ topic }) => {
     description,
     hashtags,
     userId,
-    trendingScore,
     createdAt
   } = topic;
 
@@ -34,19 +35,61 @@ const TopicCard = ({ topic }) => {
     day: 'numeric'
   });
 
-  // Handle trending score update
-  const handleTrendingScore = async (score) => {
+  // Check if the user has already liked or disliked the post
+  useEffect(() => {
+    const likedTopics = JSON.parse(localStorage.getItem('likedTopics')) || {};
+    const dislikedTopics = JSON.parse(localStorage.getItem('dislikedTopics')) || {};
+    if (likedTopics[_id]) {
+      setHasLiked(true);
+    }
+    if (dislikedTopics[_id]) {
+      setHasDisliked(true);
+    }
+  }, [_id]);
+
+  const handleTrendingScore = async (score, action) => {
+    if (hasLiked || hasDisliked) {
+      showToast(`You have already ${hasLiked ? 'liked' : 'disliked'} this topic!`, "error");
+      return;
+    }
+  
+    setIsLoading(true);
+  
     try {
+      console.log("Sending request to update score:", {
+        url: `${import.meta.env.VITE_API_URL}/api/topics/${_id}/trending`,
+        data: { score, userId: anonymousUserId },
+      });
+  
       await axios.put(
         `${import.meta.env.VITE_API_URL}/api/topics/${_id}/trending`,
         { score, userId: anonymousUserId }
       );
-
-      onUpdate({ ...topic, trendingScore: score });
+  
+      const likedTopics = JSON.parse(localStorage.getItem('likedTopics')) || {};
+      const dislikedTopics = JSON.parse(localStorage.getItem('dislikedTopics')) || {};
+  
+      if (action === 'like') {
+        likedTopics[_id] = true;
+        localStorage.setItem('likedTopics', JSON.stringify(likedTopics));
+        setHasLiked(true);
+      } else if (action === 'dislike') {
+        dislikedTopics[_id] = true;
+        localStorage.setItem('dislikedTopics', JSON.stringify(dislikedTopics));
+        setHasDisliked(true);
+      }
+  
+      setTrendingScore(score);
+  
+      showToast(`${action.charAt(0).toUpperCase() + action.slice(1)}d successfully!`, "success");
     } catch (error) {
+      console.error("Error updating score:", error);
       showToast(error.response?.data?.message || 'Error updating score', 'error');
+    } finally {
+      setIsLoading(false);
     }
   };
+  
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition duration-200 ease-in-out hover:shadow-lg border border-gray-200 dark:border-gray-700">
@@ -93,15 +136,21 @@ const TopicCard = ({ topic }) => {
       <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
         <div className="flex items-center space-x-4">
           <button
-            onClick={() => handleTrendingScore(trendingScore + 1)}
-            className="flex items-center space-x-1 hover:text-blue-600 dark:hover:text-blue-400"
+            onClick={() => handleTrendingScore(trendingScore + 1, 'like')}
+            className={`flex items-center space-x-1 ${
+              hasLiked ? 'text-blue-600 dark:text-blue-400 cursor-not-allowed' : 'hover:text-blue-600 dark:hover:text-blue-400'
+            }`}
+            disabled={hasLiked || hasDisliked}
           >
             <IconThumbUp className="w-4 h-4" />
             <span>{trendingScore || 0}</span>
           </button>
           <button
-            onClick={() => handleTrendingScore(Math.max(0, trendingScore - 1))}
-            className="flex items-center space-x-1 hover:text-red-600 dark:hover:text-red-400"
+            onClick={() => handleTrendingScore(Math.max(0, trendingScore - 1), 'dislike')}
+            className={`flex items-center space-x-1 ${
+              hasDisliked ? 'text-red-600 dark:text-red-400 cursor-not-allowed' : 'hover:text-red-600 dark:hover:text-red-400'
+            }`}
+            disabled={hasLiked || hasDisliked}
           >
             <IconThumbDown className="w-4 h-4" />
           </button>
