@@ -33,13 +33,14 @@ const CommentCard = ({
     : getAnonymousUserId();
   const isOwner = userId === comment.userId?._id;
 
-  const handleVote = async (voteType) => {
+  const handleVote = async (voteType, commentId) => {
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/comments/${comment._id}/vote`,
+        `${import.meta.env.VITE_API_URL}/api/comments/${commentId}/vote`,
         { voteType, userId }
       );
-      onUpdate(response.data.data);
+  
+      onUpdate(response.data.data); // Update UI with new data
     } catch (error) {
       showToast(
         error.response?.data?.message || "Error voting on comment",
@@ -47,6 +48,7 @@ const CommentCard = ({
       );
     }
   };
+  
 
   const handleEdit = async () => {
     if (!editedContent.trim()) {
@@ -138,23 +140,53 @@ const CommentCard = ({
               <source src={comment.audioUrl} type="audio/mpeg" />
             </audio>
           )}
+          {comment.hashtags?.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {comment.hashtags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
 
-          <div className="mt-3 flex items-center space-x-4 text-sm">
-            <button onClick={() => handleVote("like")}>
-              <IconThumbUp className="w-4 h-4" />
-            </button>
-            <button onClick={() => handleVote("dislike")}>
-              <IconThumbDown className="w-4 h-4" />
-            </button>
+<div className="mt-3 flex items-center space-x-4 text-sm">
+          <button
+            onClick={() => handleVote("like", comment._id)}
+            className={`flex items-center space-x-1 ${
+              comment.likedBy?.includes(userId) ? "text-blue-600" : "text-gray-500"
+            } hover:text-blue-600`}
+          >
+            <IconThumbUp className="w-4 h-4" />
+            <span>{comment.likes || 0}</span>
+          </button>
+          <button
+            onClick={() => handleVote("dislike", comment._id)}
+            className={`flex items-center space-x-1 ${
+              comment.dislikedBy?.includes(userId) ? "text-red-600" : "text-gray-500"
+            } hover:text-red-600`}
+          >
+            <IconThumbDown className="w-4 h-4" />
+            <span>{comment.dislikes || 0}</span>
+          </button>
+
+
             {showReplyForm && (
-              <button onClick={() => setIsReplyFormOpen(!isReplyFormOpen)}>
+              <button
+                onClick={() => setIsReplyFormOpen(!isReplyFormOpen)}
+                className="flex items-center space-x-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
+              >
                 <IconMessageCircle2 className="w-4 h-4" />
+                <span>Reply</span>
               </button>
             )}
             {comment.replies && comment.replies.length > 0 && (
               <button
                 onClick={toggleReplies}
-                className="flex items-center space-x-1 hover:text-blue-600 dark:hover:text-blue-400"
+                className="flex items-center space-x-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
               >
                 <IconMessageCircle2 className="w-4 h-4" />
                 <span>Replies ({comment.replies.length})</span>
@@ -173,14 +205,14 @@ const CommentCard = ({
           {showReplies && comment.replies && comment.replies.length > 0 && (
             <div className="mt-4 space-y-4">
               {comment.replies.map((reply) => (
-                <CommentCard
-                  key={reply._id}
-                  comment={reply}
-                  topicId={topicId}
-                  onDelete={onDelete}
-                  onUpdate={onUpdate}
-                  showReplyForm={false}
-                />
+              <CommentCard
+                key={reply._id}
+                comment={reply}
+                topicId={topicId}
+                onDelete={onDelete}
+                onUpdate={onUpdate}
+                showReplyForm={false}
+              />
               ))}
             </div>
           )}
